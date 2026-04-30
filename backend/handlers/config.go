@@ -67,6 +67,8 @@ func generateMobileConfigXML(config models.Config) string {
             <string>%s</string>
         </dict>
     </array>
+    <key>PayloadDescription</key>
+    <string>%s</string>
     <key>PayloadDisplayName</key>
     <string>%s</string>
     <key>PayloadIdentifier</key>
@@ -81,7 +83,7 @@ func generateMobileConfigXML(config models.Config) string {
     <integer>1</integer>
 </dict>
 </plist>`,
-		base64Icon, config.Name, config.Description, config.Name, uuid1, uuid1, config.URL, config.Name, uuid2, uuid2)
+		base64Icon, config.Name, config.Description, config.Name, uuid1, uuid1, config.URL, config.Description, config.Name, uuid2, uuid2)
 }
 
 // CreateConfigRequest 创建配置请求
