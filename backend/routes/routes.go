@@ -33,6 +33,9 @@ func SetupRoutes(app *fiber.App) {
 		})
 	})
 
+	// 公开安装链接
+	app.Get("/install", handlers.DownloadConfigProfile)
+
 	// API 路由组
 	api := app.Group("/api")
 

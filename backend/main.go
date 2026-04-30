@@ -22,7 +22,7 @@ import (
 // @license.name MIT
 // @license.url https://opensource.org/licenses/MIT
 
-// @host localhost:3000
+// @host localhost:4000
 // @BasePath /
 // @schemes http https
 
@@ -33,7 +33,7 @@ import (
 
 func main() {
 	// 获取配置
-	port := getEnv("PORT", "3000")
+	port := getEnv("PORT", "4000")
 	dbPath := getEnv("DB_PATH", "./data/webclip.db")
 
 	// 初始化数据库

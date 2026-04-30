@@ -1290,6 +1290,50 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/install": {
+            "get": {
+                "description": "根据配置ID生成并下载 mobileconfig",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/x-apple-aspen-config"
+                ],
+                "tags": [
+                    "配置管理"
+                ],
+                "summary": "下载配置文件",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "配置ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1582,7 +1626,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:3000",
+	Host:             "localhost:4000",
 	BasePath:         "/",
 	Schemes:          []string{"http", "https"},
 	Title:            "iOS WebClip Manager API",

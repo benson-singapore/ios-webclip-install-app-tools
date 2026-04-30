@@ -2,21 +2,31 @@ import { LayoutDashboard, LogOut } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { ConfigDrawer } from "./components/ConfigDrawer";
+import { request } from "./lib/api";
+import { clearAuthToken, isLoggedIn } from "./lib/auth";
+import {
+  createConfig,
+  deleteConfig,
+  getCurrentUser,
+  listConfigs,
+  toggleConfigStatus,
+  updateConfig,
+} from "./lib/configsApi";
 import { Toast, type ToastState } from "./components/Toast";
 import { generateMobileConfig } from "./lib/mobileconfig";
-import { loadConfigs, saveConfigs } from "./lib/storage";
 import { EditorPage } from "./pages/EditorPage";
 import { HomePage } from "./pages/HomePage";
+import { InstallPage } from "./pages/InstallPage";
 import { LoginPage } from "./pages/LoginPage";
 import type { Config, ConfigInput } from "./types/config";
 
 const App = () => {
-  const [loggedIn, setLoggedIn] = useState(true);
-  const [configs, setConfigs] = useState<Config[]>(() => {
-    return loadConfigs();
-  });
+  const [loggedIn, setLoggedIn] = useState(isLoggedIn);
+  const [configs, setConfigs] = useState<Config[]>([]);
   const [currentConfig, setCurrentConfig] = useState<Config | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const [drawerConfig, setDrawerConfig] = useState<Config | null>(null);
   const navigate = useNavigate();
@@ -29,46 +39,90 @@ const App = () => {
     [],
   );
 
+  const fetchConfigs = useCallback(async () => {
+    const items = await listConfigs();
+    setConfigs(items);
+  }, []);
+
+  const bootstrap = useCallback(async () => {
+    if (!isLoggedIn()) {
+      setLoggedIn(false);
+      setInitializing(false);
+      return;
+    }
+
+    try {
+      const me = await getCurrentUser();
+      setCurrentUserId(me.id);
+      await fetchConfigs();
+      setLoggedIn(true);
+    } catch {
+      setLoggedIn(false);
+      setConfigs([]);
+    } finally {
+      setInitializing(false);
+    }
+  }, [fetchConfigs]);
+
   useEffect(() => {
-    saveConfigs(configs);
-  }, [configs]);
+    void bootstrap();
+  }, [bootstrap]);
+
+  useEffect(() => {
+    const syncLoginState = () => {
+      setLoggedIn(isLoggedIn());
+    };
+    window.addEventListener("focus", syncLoginState);
+    window.addEventListener("storage", syncLoginState);
+
+    return () => {
+      window.removeEventListener("focus", syncLoginState);
+      window.removeEventListener("storage", syncLoginState);
+    };
+  }, []);
 
   const handleSave = async (configData: ConfigInput) => {
     setLoading(true);
     try {
-      const configId = configData.id || `conf_${Date.now()}`;
-      const next: Config = {
-        ...configData,
-        id: configId,
-        status: configData.status ?? true,
-        updatedAt: Date.now(),
-      };
-      setConfigs((prev) => {
-        const exists = prev.some((x) => x.id === configId);
-        return exists
-          ? prev.map((x) => (x.id === configId ? next : x))
-          : [next, ...prev];
-      });
+      if (configData.id) {
+        const updated = await updateConfig(configData.id, configData);
+        setConfigs((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+      } else {
+        const uid = currentUserId || (await getCurrentUser()).id;
+        setCurrentUserId(uid);
+        const created = await createConfig(configData, uid);
+        setConfigs((prev) => [created, ...prev]);
+      }
       showToast("配置已成功保存");
       navigate("/");
-    } catch {
-      showToast("保存失败，请重试", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "保存失败，请重试";
+      showToast(message, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleStatus = (config: Config) => {
-    const newStatus = !config.status;
-    setConfigs((prev) =>
-      prev.map((x) => (x.id === config.id ? { ...x, status: newStatus } : x)),
-    );
-    showToast(newStatus ? "配置已启用" : "配置已禁用", newStatus ? "success" : "warning");
+  const toggleStatus = async (config: Config) => {
+    try {
+      const updated = await toggleConfigStatus(config.id);
+      setConfigs((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+      showToast(updated.status ? "配置已启用" : "配置已禁用", updated.status ? "success" : "warning");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "切换状态失败";
+      showToast(message, "error");
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setConfigs((prev) => prev.filter((x) => x.id !== id));
-    showToast("配置已删除", "error");
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteConfig(id);
+      setConfigs((prev) => prev.filter((x) => x.id !== id));
+      showToast("配置已删除", "warning");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "删除失败";
+      showToast(message, "error");
+    }
   };
 
   const handleCopyLink = async (config: Config) => {
@@ -114,14 +168,24 @@ const App = () => {
       />
 
       <Routes>
-        <Route path="/login" element={<LoginPage onLogin={() => {
-          setLoggedIn(true);
-          navigate("/");
-        }} />} />
+        <Route path="/install" element={<InstallPage />} />
+        <Route
+          path="/login"
+          element={
+            <LoginPage
+              onLogin={async () => {
+                await bootstrap();
+                if (isLoggedIn()) {
+                  navigate("/");
+                }
+              }}
+            />
+          }
+        />
         <Route
           path="*"
           element={
-            !loggedIn ? (
+            initializing ? null : !loggedIn ? (
               <Navigate to="/login" replace />
             ) : (
               <>
@@ -145,9 +209,19 @@ const App = () => {
                       系统在线
                     </div>
                     <button
-                      onClick={() => {
-                        setLoggedIn(false);
-                        navigate("/login");
+                      onClick={async () => {
+                        try {
+                          await request<null>("/api/auth/logout", {
+                            method: "POST",
+                            skipAuthRedirect: true,
+                          });
+                        } catch {
+                          // Ignore logout API failure and continue local cleanup.
+                        } finally {
+                          clearAuthToken();
+                          setLoggedIn(false);
+                          navigate("/login");
+                        }
                       }}
                       className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
                     >

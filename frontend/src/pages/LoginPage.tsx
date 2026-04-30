@@ -1,10 +1,48 @@
 import { Lock, ShieldCheck, Sparkles, User } from "lucide-react";
+import { useState } from "react";
+import { request } from "../lib/api";
+import { setAuthToken } from "../lib/auth";
 
 type Props = {
-  onLogin: () => void;
+  onLogin: () => void | Promise<void>;
 };
 
 export const LoginPage = ({ onLogin }: Props) => {
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("123456");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!username.trim() || !password.trim()) {
+      setErrorMsg("请输入账号和密码");
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMsg("");
+
+    try {
+      const data = await request<{ token: string }>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim(),
+        }),
+        // 登录接口返回 401 时仅提示错误，不执行全局跳转
+        skipAuthRedirect: true,
+      });
+
+      setAuthToken(data.token);
+      await onLogin();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "登录失败，请重试";
+      setErrorMsg(message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-100 p-6">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(251,146,60,0.14),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.08),_transparent_45%)]" />
@@ -36,7 +74,8 @@ export const LoginPage = ({ onLogin }: Props) => {
                 type="text"
                 placeholder="请输入管理账号"
                 className="w-full border-none bg-transparent text-sm font-medium text-slate-800 placeholder:text-slate-400 outline-none"
-                defaultValue="admin"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
               />
             </div>
           </label>
@@ -49,17 +88,26 @@ export const LoginPage = ({ onLogin }: Props) => {
                 type="password"
                 placeholder="请输入安全密码"
                 className="w-full border-none bg-transparent text-sm font-medium text-slate-800 placeholder:text-slate-400 outline-none"
-                defaultValue="123456"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !submitting) {
+                    void handleSubmit();
+                  }
+                }}
               />
             </div>
           </label>
 
           <button
-            onClick={onLogin}
+            onClick={() => void handleSubmit()}
+            disabled={submitting}
             className="mt-4 w-full rounded-2xl bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500 py-4 font-bold text-white shadow-lg shadow-orange-300/60 transition-all hover:translate-y-[-1px] hover:brightness-105 active:translate-y-0"
           >
-            进入管理系统
+            {submitting ? "登录中..." : "进入管理系统"}
           </button>
+
+          {errorMsg ? <p className="text-center text-xs text-red-500">{errorMsg}</p> : null}
 
           <p className="pt-2 text-center text-xs text-slate-500">仅授权管理员可访问配置中心</p>
         </div>

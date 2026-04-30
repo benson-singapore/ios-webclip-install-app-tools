@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"ios-install-tools-go/backend/database"
@@ -10,6 +13,76 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 )
+
+func randomUUID() string {
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		return fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	// UUID v4
+	bytes[6] = (bytes[6] & 0x0f) | 0x40
+	bytes[8] = (bytes[8] & 0x3f) | 0x80
+	hexStr := hex.EncodeToString(bytes)
+	return fmt.Sprintf("%s-%s-%s-%s-%s", hexStr[0:8], hexStr[8:12], hexStr[12:16], hexStr[16:20], hexStr[20:32])
+}
+
+func generateMobileConfigXML(config models.Config) string {
+	uuid1 := randomUUID()
+	uuid2 := randomUUID()
+	base64Icon := config.IconBase64
+	if idx := strings.Index(base64Icon, ","); idx >= 0 {
+		base64Icon = base64Icon[idx+1:]
+	}
+
+	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>FullScreen</key>
+            <true/>
+            <key>Icon</key>
+            <data>%s</data>
+            <key>IsRemovable</key>
+            <true/>
+            <key>Label</key>
+            <string>%s</string>
+            <key>PayloadDescription</key>
+            <string>%s</string>
+            <key>PayloadDisplayName</key>
+            <string>%s</string>
+            <key>PayloadIdentifier</key>
+            <string>com.webclip.%s</string>
+            <key>PayloadType</key>
+            <string>com.apple.webClip.managed</string>
+            <key>PayloadUUID</key>
+            <string>%s</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>Precomposed</key>
+            <true/>
+            <key>URL</key>
+            <string>%s</string>
+        </dict>
+    </array>
+    <key>PayloadDisplayName</key>
+    <string>%s</string>
+    <key>PayloadIdentifier</key>
+    <string>com.webclip.profile.%s</string>
+    <key>PayloadRemovalDisallowed</key>
+    <false/>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadUUID</key>
+    <string>%s</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+</dict>
+</plist>`,
+		base64Icon, config.Name, config.Description, config.Name, uuid1, uuid1, config.URL, config.Name, uuid2, uuid2)
+}
 
 // CreateConfigRequest 创建配置请求
 type CreateConfigRequest struct {
@@ -302,4 +375,52 @@ func GetUserConfigStats(c *fiber.Ctx) error {
 		"enabled":  enabled,
 		"disabled": total - enabled,
 	})
+}
+
+// DownloadConfigProfile 下载配置文件（公开）
+// @Summary 下载配置文件
+// @Description 根据配置ID生成并下载 mobileconfig
+// @Tags 配置管理
+// @Accept json
+// @Produce application/x-apple-aspen-config
+// @Param id query string true "配置ID"
+// @Success 200 {string} string
+// @Failure 400 {object} utils.Response
+// @Failure 404 {object} utils.Response
+// @Router /install [get]
+func DownloadConfigProfile(c *fiber.Ctx) error {
+	id := c.Query("id")
+	if id == "" {
+		return utils.BadRequestResponse(c, "Config ID is required")
+	}
+
+	var config models.Config
+	if err := database.DB.First(&config, "id = ?", id).Error; err != nil {
+		return utils.NotFoundResponse(c, "Config not found")
+	}
+
+	if config.Status != 1 {
+		return utils.NotFoundResponse(c, "Config is disabled")
+	}
+
+	now := time.Now().UnixMilli()
+	_ = database.DB.Model(&models.Config{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"install_count":   config.InstallCount + 1,
+		"last_install_at": now,
+	}).Error
+
+	_ = database.DB.Create(&models.InstallLog{
+		ConfigID:   config.ID,
+		UserID:     config.UserID,
+		InstallAt:  now,
+		IPAddress:  c.IP(),
+		UserAgent:  c.Get("User-Agent"),
+		DeviceInfo: c.Get("User-Agent"),
+	}).Error
+
+	xml := generateMobileConfigXML(config)
+	fileName := fmt.Sprintf("%s.mobileconfig", config.Name)
+	c.Set("Content-Type", "application/x-apple-aspen-config")
+	c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
+	return c.SendString(xml)
 }
