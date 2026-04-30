@@ -26,6 +26,11 @@ import (
 // @BasePath /
 // @schemes http https
 
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description 输入 "Bearer {token}" 格式的认证令牌
+
 func main() {
 	// 获取配置
 	port := getEnv("PORT", "3000")

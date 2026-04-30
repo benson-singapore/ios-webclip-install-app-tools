@@ -32,6 +32,7 @@ func InitDatabase(dbPath string) error {
 		&models.User{},
 		&models.Config{},
 		&models.InstallLog{},
+		&models.Session{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
@@ -84,6 +85,17 @@ func createIndexes() error {
 		return err
 	}
 	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_install_logs_install_at ON install_logs(install_at)").Error; err != nil {
+		return err
+	}
+
+	// Session 表索引
+	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)").Error; err != nil {
+		return err
+	}
+	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token)").Error; err != nil {
+		return err
+	}
+	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at)").Error; err != nil {
 		return err
 	}
 

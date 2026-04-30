@@ -62,3 +62,21 @@ func InternalServerErrorResponse(c *fiber.Ctx, message string) error {
 		Data:    nil,
 	})
 }
+
+// UnauthorizedResponse 401 错误
+func UnauthorizedResponse(c *fiber.Ctx, message string) error {
+	return c.JSON(Response{
+		Code:    401,
+		Message: message,
+		Data:    nil,
+	})
+}
+
+// ForbiddenResponse 403 错误
+func ForbiddenResponse(c *fiber.Ctx, message string) error {
+	return c.JSON(Response{
+		Code:    403,
+		Message: message,
+		Data:    nil,
+	})
+}
