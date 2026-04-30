@@ -13,16 +13,15 @@ import (
 
 // LoginRequest 登录请求
 type LoginRequest struct {
-	UserID   string `json:"user_id" example:"user_001"`
-	Email    string `json:"email" example:"user@example.com"`
-	Password string `json:"password" example:"password123"` // 可选：如果需要密码验证
+	Username string `json:"username" example:"admin"`
+	Password string `json:"password" example:"admin123"`
 }
 
 // LoginResponse 登录响应
 type LoginResponse struct {
-	Token     string       `json:"token"`
-	ExpiresAt int64        `json:"expires_at"`
-	User      models.User  `json:"user"`
+	Token     string      `json:"token"`
+	ExpiresAt int64       `json:"expires_at"`
+	User      models.User `json:"user"`
 }
 
 // Login 用户登录
@@ -44,21 +43,23 @@ func Login(c *fiber.Ctx) error {
 		return utils.BadRequestResponse(c, "Invalid request body")
 	}
 
-	if req.UserID == "" && req.Email == "" {
-		return utils.BadRequestResponse(c, "User ID or email is required")
+	if req.Username == "" {
+		return utils.BadRequestResponse(c, "Username is required")
+	}
+
+	if req.Password == "" {
+		return utils.BadRequestResponse(c, "Password is required")
 	}
 
 	// 查找用户
 	var user models.User
-	query := database.DB
-	if req.UserID != "" {
-		query = query.Where("id = ?", req.UserID)
-	} else {
-		query = query.Where("email = ?", req.Email)
+	if err := database.DB.Where("username = ?", req.Username).First(&user).Error; err != nil {
+		return utils.UnauthorizedResponse(c, "Invalid username or password")
 	}
 
-	if err := query.First(&user).Error; err != nil {
-		return utils.NotFoundResponse(c, "User not found")
+	// 验证密码
+	if user.Password != req.Password {
+		return utils.UnauthorizedResponse(c, "Invalid username or password")
 	}
 
 	// 检查用户状态
@@ -67,7 +68,7 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	// 创建 session
-	session, err := middleware.CreateSession(user.ID, c.IP(), c.Get("User-Agent"))
+	token, expiresAt, err := middleware.CreateSession(user.ID, c.IP(), c.Get("User-Agent"))
 	if err != nil {
 		return utils.InternalServerErrorResponse(c, "Failed to create session")
 	}
@@ -83,8 +84,8 @@ func Login(c *fiber.Ctx) error {
 	database.DB.First(&user, "id = ?", user.ID)
 
 	return utils.SuccessResponse(c, LoginResponse{
-		Token:     session.Token,
-		ExpiresAt: session.ExpiresAt,
+		Token:     token,
+		ExpiresAt: expiresAt,
 		User:      user,
 	})
 }
@@ -157,23 +158,25 @@ func GetCurrentUser(c *fiber.Ctx) error {
 // @Failure 500 {object} utils.Response
 // @Router /api/auth/refresh [post]
 func RefreshSession(c *fiber.Ctx) error {
-	session := c.Locals("session")
-	if session == nil {
+	user := c.Locals("user")
+	if user == nil {
 		return utils.UnauthorizedResponse(c, "Not authenticated")
 	}
 
-	s := session.(*models.Session)
+	u := user.(*models.User)
 	
 	// 延长过期时间
 	now := time.Now().UnixMilli()
 	newExpiresAt := now + (7 * 24 * 60 * 60 * 1000) // 再延长7天
 
-	if err := database.DB.Model(s).Update("expires_at", newExpiresAt).Error; err != nil {
+	if err := database.DB.Model(&models.User{}).
+		Where("id = ?", u.ID).
+		Update("token_expiry", newExpiresAt).Error; err != nil {
 		return utils.InternalServerErrorResponse(c, "Failed to refresh session")
 	}
 
 	return utils.SuccessResponse(c, fiber.Map{
-		"token":      s.Token,
+		"token":      u.Token,
 		"expires_at": newExpiresAt,
 	})
 }

@@ -84,6 +84,7 @@ func CreateInstallLog(c *fiber.Ctx) error {
 // @Tags 安装日志
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "日志ID"
 // @Success 200 {object} utils.Response{data=models.InstallLog}
 // @Failure 404 {object} utils.Response
@@ -105,6 +106,7 @@ func GetInstallLog(c *fiber.Ctx) error {
 // @Tags 安装日志
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param config_id query string false "配置ID"
 // @Param user_id query string false "用户ID"
 // @Param page query int false "页码" default(1)
@@ -156,6 +158,7 @@ func ListInstallLogs(c *fiber.Ctx) error {
 // @Tags 安装日志
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path int true "日志ID"
 // @Success 200 {object} utils.Response
 // @Failure 404 {object} utils.Response
@@ -182,6 +185,7 @@ func DeleteInstallLog(c *fiber.Ctx) error {
 // @Tags 安装日志
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param config_id query string false "配置ID"
 // @Param user_id query string false "用户ID"
 // @Success 200 {object} utils.Response{data=object}

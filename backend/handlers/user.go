@@ -14,14 +14,18 @@ import (
 // CreateUserRequest 创建用户请求
 type CreateUserRequest struct {
 	ID          string `json:"id" example:"user_001"`
+	Username    string `json:"username" example:"john_doe"`
 	Email       string `json:"email" example:"user@example.com"`
+	Password    string `json:"password" example:"password123"`
 	DisplayName string `json:"display_name" example:"John Doe"`
 	IsAnonymous int    `json:"is_anonymous" example:"0"`
 }
 
 // UpdateUserRequest 更新用户请求
 type UpdateUserRequest struct {
+	Username    string `json:"username" example:"john_doe"`
 	Email       string `json:"email" example:"user@example.com"`
+	Password    string `json:"password" example:"password123"`
 	DisplayName string `json:"display_name" example:"John Doe"`
 	Status      *int   `json:"status" example:"1"`
 }
@@ -32,6 +36,7 @@ type UpdateUserRequest struct {
 // @Tags 用户管理
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param user body CreateUserRequest true "用户信息"
 // @Success 200 {object} utils.Response{data=models.User}
 // @Failure 400 {object} utils.Response
@@ -47,10 +52,20 @@ func CreateUser(c *fiber.Ctx) error {
 		return utils.BadRequestResponse(c, "User ID is required")
 	}
 
+	if req.Username == "" {
+		return utils.BadRequestResponse(c, "Username is required")
+	}
+
+	if req.Password == "" {
+		return utils.BadRequestResponse(c, "Password is required")
+	}
+
 	now := time.Now().UnixMilli()
 	user := models.User{
 		ID:          req.ID,
+		Username:    req.Username,
 		Email:       req.Email,
+		Password:    req.Password,
 		DisplayName: req.DisplayName,
 		IsAnonymous: req.IsAnonymous,
 		CreatedAt:   now,
@@ -72,6 +87,7 @@ func CreateUser(c *fiber.Ctx) error {
 // @Tags 用户管理
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path string true "用户ID"
 // @Success 200 {object} utils.Response{data=models.User}
 // @Failure 404 {object} utils.Response
@@ -93,6 +109,7 @@ func GetUser(c *fiber.Ctx) error {
 // @Tags 用户管理
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页数量" default(10)
 // @Param status query int false "用户状态" Enums(0, 1)
@@ -139,6 +156,7 @@ func ListUsers(c *fiber.Ctx) error {
 // @Tags 用户管理
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path string true "用户ID"
 // @Param user body UpdateUserRequest true "用户信息"
 // @Success 200 {object} utils.Response{data=models.User}
@@ -160,8 +178,14 @@ func UpdateUser(c *fiber.Ctx) error {
 	}
 
 	updates := make(map[string]interface{})
+	if req.Username != "" {
+		updates["username"] = req.Username
+	}
 	if req.Email != "" {
 		updates["email"] = req.Email
+	}
+	if req.Password != "" {
+		updates["password"] = req.Password
 	}
 	if req.DisplayName != "" {
 		updates["display_name"] = req.DisplayName
@@ -187,6 +211,7 @@ func UpdateUser(c *fiber.Ctx) error {
 // @Tags 用户管理
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path string true "用户ID"
 // @Success 200 {object} utils.Response
 // @Failure 404 {object} utils.Response
@@ -213,6 +238,7 @@ func DeleteUser(c *fiber.Ctx) error {
 // @Tags 用户管理
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path string true "用户ID"
 // @Success 200 {object} utils.Response
 // @Failure 404 {object} utils.Response

@@ -37,6 +37,7 @@ type UpdateConfigRequest struct {
 // @Tags 配置管理
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param config body CreateConfigRequest true "配置信息"
 // @Success 200 {object} utils.Response{data=models.Config}
 // @Failure 400 {object} utils.Response
@@ -89,6 +90,7 @@ func CreateConfig(c *fiber.Ctx) error {
 // @Tags 配置管理
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path string true "配置ID"
 // @Success 200 {object} utils.Response{data=models.Config}
 // @Failure 404 {object} utils.Response
@@ -110,6 +112,7 @@ func GetConfig(c *fiber.Ctx) error {
 // @Tags 配置管理
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param user_id query string false "用户ID"
 // @Param status query int false "配置状态" Enums(0, 1)
 // @Param page query int false "页码" default(1)
@@ -161,6 +164,7 @@ func ListConfigs(c *fiber.Ctx) error {
 // @Tags 配置管理
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path string true "配置ID"
 // @Param config body UpdateConfigRequest true "配置信息"
 // @Success 200 {object} utils.Response{data=models.Config}
@@ -215,6 +219,7 @@ func UpdateConfig(c *fiber.Ctx) error {
 // @Tags 配置管理
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path string true "配置ID"
 // @Success 200 {object} utils.Response
 // @Failure 404 {object} utils.Response
@@ -241,6 +246,7 @@ func DeleteConfig(c *fiber.Ctx) error {
 // @Tags 配置管理
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param id path string true "配置ID"
 // @Success 200 {object} utils.Response{data=models.Config}
 // @Failure 404 {object} utils.Response
@@ -278,6 +284,7 @@ func ToggleConfigStatus(c *fiber.Ctx) error {
 // @Tags 配置管理
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param user_id path string true "用户ID"
 // @Success 200 {object} utils.Response{data=object}
 // @Router /api/configs/stats/{user_id} [get]

@@ -23,57 +23,67 @@ func GenerateSessionToken() (string, error) {
 }
 
 // CreateSession 创建新的 session
-func CreateSession(userID, ipAddress, userAgent string) (*models.Session, error) {
+func CreateSession(userID, ipAddress, userAgent string) (string, int64, error) {
 	token, err := GenerateSessionToken()
 	if err != nil {
-		return nil, err
+		return "", 0, err
 	}
 
 	now := time.Now().UnixMilli()
 	expiresAt := now + (7 * 24 * 60 * 60 * 1000) // 7天过期
 
-	session := &models.Session{
-		ID:        token[:16], // 使用前16个字符作为ID
-		UserID:    userID,
-		Token:     token,
-		ExpiresAt: expiresAt,
-		CreatedAt: now,
-		IPAddress: ipAddress,
-		UserAgent: userAgent,
+	// 更新用户的 token 和过期时间
+	if err := database.DB.Model(&models.User{}).
+		Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"token":        token,
+			"token_expiry": expiresAt,
+		}).Error; err != nil {
+		return "", 0, err
 	}
 
-	if err := database.DB.Create(session).Error; err != nil {
-		return nil, err
-	}
-
-	return session, nil
+	return token, expiresAt, nil
 }
 
 // ValidateSession 验证 session token
-func ValidateSession(token string) (*models.Session, error) {
-	var session models.Session
-	if err := database.DB.Where("token = ?", token).First(&session).Error; err != nil {
+func ValidateSession(token string) (*models.User, error) {
+	var user models.User
+	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
 		return nil, err
 	}
 
 	// 检查是否过期
-	if time.Now().UnixMilli() > session.ExpiresAt {
-		database.DB.Delete(&session)
+	if time.Now().UnixMilli() > user.TokenExpiry {
 		return nil, fiber.NewError(fiber.StatusUnauthorized, "Session expired")
 	}
 
-	return &session, nil
+	// 检查用户状态
+	if user.Status != 1 {
+		return nil, fiber.NewError(fiber.StatusUnauthorized, "User account is disabled")
+	}
+
+	return &user, nil
 }
 
 // DeleteSession 删除 session
 func DeleteSession(token string) error {
-	return database.DB.Where("token = ?", token).Delete(&models.Session{}).Error
+	return database.DB.Model(&models.User{}).
+		Where("token = ?", token).
+		Updates(map[string]interface{}{
+			"token":        "",
+			"token_expiry": 0,
+		}).Error
 }
 
 // CleanExpiredSessions 清理过期的 sessions
 func CleanExpiredSessions() error {
 	now := time.Now().UnixMilli()
-	return database.DB.Where("expires_at < ?", now).Delete(&models.Session{}).Error
+	return database.DB.Model(&models.User{}).
+		Where("token_expiry > 0 AND token_expiry < ?", now).
+		Updates(map[string]interface{}{
+			"token":        "",
+			"token_expiry": 0,
+		}).Error
 }
 
 // AuthRequired 认证中间件
@@ -91,14 +101,14 @@ func AuthRequired(c *fiber.Ctx) error {
 	}
 
 	// 验证 session
-	session, err := ValidateSession(token)
+	user, err := ValidateSession(token)
 	if err != nil {
 		return utils.UnauthorizedResponse(c, "Invalid or expired session")
 	}
 
 	// 将用户ID存储到 context 中
-	c.Locals("user_id", session.UserID)
-	c.Locals("session", session)
+	c.Locals("user_id", user.ID)
+	c.Locals("user", user)
 
 	return c.Next()
 }
@@ -112,10 +122,10 @@ func OptionalAuth(c *fiber.Ctx) error {
 			token = strings.TrimPrefix(authHeader, "Bearer ")
 		}
 
-		session, err := ValidateSession(token)
+		user, err := ValidateSession(token)
 		if err == nil {
-			c.Locals("user_id", session.UserID)
-			c.Locals("session", session)
+			c.Locals("user_id", user.ID)
+			c.Locals("user", user)
 		}
 	}
 

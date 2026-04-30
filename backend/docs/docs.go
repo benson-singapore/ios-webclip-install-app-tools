@@ -239,6 +239,11 @@ const docTemplate = `{
         },
         "/api/configs": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "获取配置列表，支持按用户ID和状态筛选",
                 "consumes": [
                     "application/json"
@@ -304,6 +309,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "创建新的 WebClip 配置",
                 "consumes": [
                     "application/json"
@@ -362,6 +372,11 @@ const docTemplate = `{
         },
         "/api/configs/stats/{user_id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "获取用户的配置统计信息",
                 "consumes": [
                     "application/json"
@@ -406,6 +421,11 @@ const docTemplate = `{
         },
         "/api/configs/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "根据配置ID获取配置详情",
                 "consumes": [
                     "application/json"
@@ -454,6 +474,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "更新配置信息",
                 "consumes": [
                     "application/json"
@@ -523,6 +548,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "删除配置及其相关日志",
                 "consumes": [
                     "application/json"
@@ -567,6 +597,11 @@ const docTemplate = `{
         },
         "/api/configs/{id}/toggle": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "启用或禁用配置",
                 "consumes": [
                     "application/json"
@@ -623,6 +658,11 @@ const docTemplate = `{
         },
         "/api/install-logs": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "获取安装日志列表，支持按配置ID和用户ID筛选",
                 "consumes": [
                     "application/json"
@@ -742,6 +782,11 @@ const docTemplate = `{
         },
         "/api/install-logs/stats": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "获取配置的安装统计信息",
                 "consumes": [
                     "application/json"
@@ -791,6 +836,11 @@ const docTemplate = `{
         },
         "/api/install-logs/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "根据日志ID获取安装日志详情",
                 "consumes": [
                     "application/json"
@@ -839,6 +889,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "删除指定的安装日志",
                 "consumes": [
                     "application/json"
@@ -883,6 +938,11 @@ const docTemplate = `{
         },
         "/api/users": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "获取所有用户列表，支持分页",
                 "consumes": [
                     "application/json"
@@ -945,6 +1005,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "创建新用户",
                 "consumes": [
                     "application/json"
@@ -1003,6 +1068,11 @@ const docTemplate = `{
         },
         "/api/users/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "根据用户ID获取用户详情",
                 "consumes": [
                     "application/json"
@@ -1051,6 +1121,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "更新用户信息",
                 "consumes": [
                     "application/json"
@@ -1120,6 +1195,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "删除用户及其所有配置",
                 "consumes": [
                     "application/json"
@@ -1164,6 +1244,11 @@ const docTemplate = `{
         },
         "/api/users/{id}/login": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "更新用户最后登录时间",
                 "consumes": [
                     "application/json"
@@ -1284,24 +1369,27 @@ const docTemplate = `{
                 "is_anonymous": {
                     "type": "integer",
                     "example": 0
+                },
+                "password": {
+                    "type": "string",
+                    "example": "password123"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "john_doe"
                 }
             }
         },
         "handlers.LoginRequest": {
             "type": "object",
             "properties": {
-                "email": {
-                    "type": "string",
-                    "example": "user@example.com"
-                },
                 "password": {
-                    "description": "可选：如果需要密码验证",
                     "type": "string",
-                    "example": "password123"
+                    "example": "admin123"
                 },
-                "user_id": {
+                "username": {
                     "type": "string",
-                    "example": "user_001"
+                    "example": "admin"
                 }
             }
         },
@@ -1355,9 +1443,17 @@ const docTemplate = `{
                     "type": "string",
                     "example": "user@example.com"
                 },
+                "password": {
+                    "type": "string",
+                    "example": "password123"
+                },
                 "status": {
                     "type": "integer",
                     "example": 1
+                },
+                "username": {
+                    "type": "string",
+                    "example": "john_doe"
                 }
             }
         },
@@ -1451,6 +1547,10 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "integer"
+                },
+                "username": {
+                    "description": "用户名",
+                    "type": "string"
                 }
             }
         },
