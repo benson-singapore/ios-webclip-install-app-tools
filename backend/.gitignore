@@ -18,10 +18,8 @@ vendor/
 go.work
 
 # Database files
-*.db
 *.db-shm
 *.db-wal
-data/
 
 # Environment files
 .env
