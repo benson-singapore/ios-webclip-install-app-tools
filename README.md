@@ -73,9 +73,9 @@ ios-install-tools-go/
    ```
 
 5. **访问服务**
-   - API 服务：http://localhost:3000
-   - Swagger 文档：http://localhost:3000/swagger/index.html
-   - 健康检查：http://localhost:3000/health
+   - API 服务：http://localhost:4000
+   - Swagger 文档：http://localhost:4000/swagger/index.html
+   - 健康检查：http://localhost:4000/health
 
 ### 使用 Makefile
 
@@ -172,7 +172,7 @@ cd backend
 docker build -t webclip-api .
 
 # 运行容器
-docker run -d -p 3000:3000 -v $(pwd)/data:/app/data webclip-api
+docker run -d -p 4000:4000 -v $(pwd)/data:/app/data webclip-api
 ```
 
 ### 直接部署
@@ -189,7 +189,7 @@ go build -o webclip-api main.go
 
 ### 环境变量
 
-- `PORT` - 服务端口（默认：3000）
+- `PORT` - 服务端口（默认：4000）
 - `DB_PATH` - 数据库文件路径（默认：./data/webclip.db）
 
 ## 开发指南
