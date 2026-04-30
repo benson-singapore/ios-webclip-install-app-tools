@@ -1,32 +1,26 @@
-FROM golang:1.21-alpine AS builder
+FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# 安装依赖
-COPY go.mod go.sum ./
-RUN go mod download
+# Build-time configurable default DB path
+ARG DB_PATH=/app/data/webclip.db
 
-# 复制源代码
-COPY . .
+# Minimal runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
 
-# 编译
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main .
+# Copy prebuilt linux/amd64 binary (built by make build-linux-amd64)
+COPY bin/api-linux-amd64 /app/api
 
-# 运行阶段
-FROM alpine:latest
+# Prepare runtime directories and permissions
+RUN chmod +x /app/api && mkdir -p /app/data /app/uploads
 
-RUN apk --no-cache add ca-certificates sqlite-libs
+ENV TZ=Asia/Shanghai
+ENV SWAGGER_ENABLED=false
+ENV DB_PATH=${DB_PATH}
 
-WORKDIR /app
+EXPOSE 8080
 
-# 从构建阶段复制编译好的二进制文件
-COPY --from=builder /app/main .
-
-# 创建数据目录
-RUN mkdir -p /app/data
-
-# 暴露端口
-EXPOSE 3000
-
-# 运行
-CMD ["./main"]
+ENTRYPOINT ["/app/api"]

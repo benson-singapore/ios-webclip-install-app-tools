@@ -1,6 +1,7 @@
 import { clearAuthToken, getAuthToken } from "./auth";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() || "";
+const RAW_API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() || "";
+const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 
 type ApiResponse<T> = {
   code: number;

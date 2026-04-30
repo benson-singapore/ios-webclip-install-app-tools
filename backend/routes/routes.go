@@ -12,7 +12,7 @@ import (
 )
 
 // SetupRoutes 设置所有路由
-func SetupRoutes(app *fiber.App) {
+func SetupRoutes(app *fiber.App, swaggerEnabled bool) {
 	// 中间件
 	app.Use(recover.New())
 	app.Use(logger.New())
@@ -22,8 +22,10 @@ func SetupRoutes(app *fiber.App) {
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
 
-	// Swagger 文档
-	app.Get("/swagger/*", swagger.HandlerDefault)
+	// Swagger 文档（可按环境开关）
+	if swaggerEnabled {
+		app.Get("/swagger/*", swagger.HandlerDefault)
+	}
 
 	// 健康检查
 	app.Get("/health", func(c *fiber.Ctx) error {

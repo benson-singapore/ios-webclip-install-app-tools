@@ -1,4 +1,4 @@
-.PHONY: help run build clean test swagger install
+.PHONY: help run build build-linux-amd64 clean test swagger install docker-build docker-build-local
 
 help: ## 显示帮助信息
 	@echo "可用命令："
@@ -28,7 +28,14 @@ swagger: ## 生成 Swagger 文档
 dev: swagger run ## 开发模式（生成文档并运行）
 
 docker-build: ## 构建 Docker 镜像
-	docker build -t webclip-api:latest .
+	$(MAKE) build-linux-amd64
+	docker build --platform linux/amd64 -t tuangou-shop-backend:latest .
+
+build-linux-amd64: ## 交叉编译 Linux amd64 二进制
+	./scripts/build-linux-amd64.sh
+
+docker-build-local: ## 本地编译并构建 Linux amd64 镜像
+	./scripts/docker-build-local.sh
 
 docker-run: ## 运行 Docker 容器
 	docker run -d -p 3000:3000 -v $(PWD)/data:/app/data --name webclip-api webclip-api:latest

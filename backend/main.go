@@ -35,6 +35,7 @@ func main() {
 	// 获取配置
 	port := getEnv("PORT", "4000")
 	dbPath := getEnv("DB_PATH", "./data/webclip.db")
+	swaggerEnabled := getEnvBool("SWAGGER_ENABLED", true)
 
 	// 初始化数据库
 	log.Println("Initializing database...")
@@ -51,11 +52,15 @@ func main() {
 	})
 
 	// 设置路由
-	routes.SetupRoutes(app)
+	routes.SetupRoutes(app, swaggerEnabled)
 
 	// 启动服务器
 	log.Printf("Server starting on port %s...", port)
-	log.Printf("Swagger documentation: http://localhost:%s/swagger/index.html", port)
+	if swaggerEnabled {
+		log.Printf("Swagger documentation: http://localhost:%s/swagger/index.html", port)
+	} else {
+		log.Println("Swagger documentation is disabled")
+	}
 	if err := app.Listen(":" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
@@ -68,6 +73,23 @@ func getEnv(key, defaultValue string) string {
 		return defaultValue
 	}
 	return value
+}
+
+// getEnvBool 获取布尔环境变量，支持 true/false/1/0/yes/no/on/off
+func getEnvBool(key string, defaultValue bool) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+
+	switch value {
+	case "1", "true", "TRUE", "True", "yes", "YES", "on", "ON":
+		return true
+	case "0", "false", "FALSE", "False", "no", "NO", "off", "OFF":
+		return false
+	default:
+		return defaultValue
+	}
 }
 
 // customErrorHandler 自定义错误处理
