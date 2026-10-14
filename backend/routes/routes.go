@@ -16,10 +16,11 @@ func SetupRoutes(app *fiber.App, swaggerEnabled bool) {
 	// 中间件
 	app.Use(recover.New())
 	app.Use(logger.New())
+	// 不做跨域校验：允许任意来源访问
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization, X-Requested-With",
+		AllowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 	}))
 
 	// Swagger 文档（可按环境开关）
